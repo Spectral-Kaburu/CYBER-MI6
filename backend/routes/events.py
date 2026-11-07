@@ -9,6 +9,7 @@ from pydantic import Discriminator, Tag
 from starlette.concurrency import run_in_threadpool
 
 from backend import storage
+from backend.auth import require_user
 from backend.config import Settings, get_settings
 from backend.db import Database
 from backend.deps import get_db, get_ingest_limiter
@@ -88,7 +89,7 @@ async def ingest_events(
     return {"accepted": len(stored), "event_ids": [e.id for e in stored]}
 
 
-@router.get("/events", response_model=list[Event])
+@router.get("/events", response_model=list[Event], dependencies=[Depends(require_user)])
 def list_events(
     db: Database = Depends(get_db),
     type: EventType | None = None,

@@ -4,7 +4,7 @@
   import DevScenarioNotice from './components/DevScenarioNotice.svelte';
   import { displayedConnection, feed } from './lib/live';
   import { location } from './lib/router';
-  import { startLive } from './lib/ws';
+  import { startLive, stopLive } from './lib/ws';
   import { auth } from './lib/auth';
   
   import AlertDetail from './views/AlertDetail.svelte';
@@ -30,6 +30,8 @@
   $effect(() => {
     if ($auth.isAuthenticated) {
       startLive();
+    } else {
+      stopLive(); // logged out: close the live socket instead of leaving it streaming
     }
   });
 </script>

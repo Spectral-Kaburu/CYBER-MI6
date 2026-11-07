@@ -9,6 +9,8 @@ pydantic>=2.5,<3
 fastapi>=0.110.0
 pydantic-settings>=2.0.0
 uvicorn[standard]>=0.28.0
+argon2-cffi>=25.1.0   # password hashing (argon2id)
+PyJWT>=2.7,<3         # dashboard login tokens
 
 # --- tests -----------------------------------------------------------------
 pytest>=8

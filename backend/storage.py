@@ -11,6 +11,7 @@ Windows  events_in_window, count_events, count_distinct
 Alerts   insert_alert, upsert_alert, get_alert, list_alerts, update_alert_status,
          get_alert_evidence
 Dash     stats
+Users    create_user, get_user, get_user_by_username, list_users, update_user, record_login
 Upkeep   purge_old_events
 
 All times are UTC. Arguments named ``since`` / ``until`` / ``now`` are datetimes
@@ -18,6 +19,9 @@ All times are UTC. Arguments named ``since`` / ``until`` / ``now`` are datetimes
 """
 
 import json
+import sqlite3
+import uuid
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
@@ -521,3 +525,145 @@ def purge_old_events(
         total += deleted
         if deleted < chunk_size:
             return total
+
+
+# --------------------------------------------------------------------------
+# Users (dashboard accounts)
+# --------------------------------------------------------------------------
+@dataclass(frozen=True)
+class UserRecord:
+    """A users row INCLUDING the password hash. Never return this from an API route:
+    convert it with ``to_profile`` (backend/auth.py) first."""
+
+    id: str
+    username: str
+    password_hash: str
+    role: str
+    status: str
+    created_at: datetime
+    last_login: datetime | None
+
+
+class UsernameTakenError(Exception):
+    """Another account already uses that username (case-insensitive)."""
+
+
+class LastAdminError(Exception):
+    """The change would leave the system without an active admin."""
+
+
+_USER_COLUMNS = "id, username, password_hash, role, status, created_at, last_login"
+
+
+def _row_to_user(row) -> UserRecord:
+    return UserRecord(
+        id=row["id"],
+        username=row["username"],
+        password_hash=row["password_hash"],
+        role=row["role"],
+        status=row["status"],
+        created_at=from_db_ts(row["created_at"]),
+        last_login=from_db_ts(row["last_login"]) if row["last_login"] else None,
+    )
+
+
+def _fetch_user(conn, user_id: str) -> UserRecord | None:
+    row = conn.execute(f"SELECT {_USER_COLUMNS} FROM users WHERE id = ?", (user_id,)).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def create_user(
+    db: Database,
+    *,
+    username: str,
+    password_hash: str,
+    role: str,
+    status: str = "active",
+    now: datetime | None = None,
+) -> UserRecord:
+    """Insert a user. Raises UsernameTakenError on a duplicate (case-insensitive) username."""
+    stamp = to_db_ts(now or utcnow())
+    user_id = uuid.uuid4().hex
+    try:
+        with db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO users (id, username, password_hash, role, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (user_id, username, password_hash, role, status, stamp, stamp),
+            )
+            return _fetch_user(conn, user_id)  # type: ignore[return-value]
+    except sqlite3.IntegrityError as exc:
+        if "username" in str(exc):
+            raise UsernameTakenError(username) from exc
+        raise
+
+
+def get_user(db: Database, user_id: str) -> UserRecord | None:
+    return _fetch_user(db.connection(), user_id)
+
+
+def get_user_by_username(db: Database, username: str) -> UserRecord | None:
+    row = db.connection().execute(
+        f"SELECT {_USER_COLUMNS} FROM users WHERE username = ?", (username,)  # column is NOCASE
+    ).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def list_users(db: Database) -> list[UserRecord]:
+    rows = db.connection().execute(f"SELECT {_USER_COLUMNS} FROM users ORDER BY username").fetchall()
+    return [_row_to_user(r) for r in rows]
+
+
+def update_user(
+    db: Database,
+    user_id: str,
+    *,
+    username: str | None = None,
+    password_hash: str | None = None,
+    role: str | None = None,
+    status: str | None = None,
+    now: datetime | None = None,
+) -> UserRecord | None:
+    """Change the given fields (None = leave alone). Returns the user, or None if it doesn't exist.
+
+    The check that the last active admin is not demoted or disabled runs in the same write
+    transaction as the change, so two admins removing each other cannot both succeed.
+    Raises LastAdminError / UsernameTakenError.
+    """
+    try:
+        with db.transaction() as conn:
+            current = _fetch_user(conn, user_id)
+            if current is None:
+                return None
+            new_role = role if role is not None else current.role
+            new_status = status if status is not None else current.status
+            was_active_admin = current.role == "admin" and current.status == "active"
+            stays_active_admin = new_role == "admin" and new_status == "active"
+            if was_active_admin and not stays_active_admin:
+                active_admins = conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'active'"
+                ).fetchone()[0]
+                if active_admins <= 1:
+                    raise LastAdminError(user_id)
+            conn.execute(
+                "UPDATE users SET username = ?, password_hash = ?, role = ?, status = ?, updated_at = ? "
+                "WHERE id = ?",
+                (
+                    username if username is not None else current.username,
+                    password_hash if password_hash is not None else current.password_hash,
+                    new_role,
+                    new_status,
+                    to_db_ts(now or utcnow()),
+                    user_id,
+                ),
+            )
+            return _fetch_user(conn, user_id)
+    except sqlite3.IntegrityError as exc:
+        if "username" in str(exc):
+            raise UsernameTakenError(username) from exc
+        raise
+
+
+def record_login(db: Database, user_id: str, *, now: datetime | None = None) -> None:
+    with db.transaction() as conn:
+        conn.execute("UPDATE users SET last_login = ? WHERE id = ?", (to_db_ts(now or utcnow()), user_id))

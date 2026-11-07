@@ -60,6 +60,11 @@ async def lifespan(app: FastAPI):
     app.state.ingest_limiter = SlidingWindowLimiter(
         settings.ingest_rate_limit, settings.ingest_rate_window_seconds
     )
+    app.state.login_limiter = SlidingWindowLimiter(
+        settings.login_rate_limit, settings.login_rate_window_seconds
+    )
+    if not settings.jwt_secret:
+        log.warning("JWT_SECRET is not set: dashboard login and every dashboard route are disabled (503)")
     retention_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="retention")
     retention = asyncio.create_task(
         _retention_loop(db, settings.event_retention_days, retention_executor)
@@ -90,7 +95,7 @@ def create_app(*, mount_static: bool = True) -> FastAPI:
             CORSMiddleware,
             allow_origins=settings.origins_list,
             allow_methods=["GET", "POST", "PATCH"],
-            allow_headers=["Content-Type", "X-API-Key"],
+            allow_headers=["Content-Type", "X-API-Key", "Authorization"],
         )
 
     @app.exception_handler(RequestValidationError)
@@ -104,6 +109,10 @@ def create_app(*, mount_static: bool = True) -> FastAPI:
 
     app.include_router(ws_module.router)
     from backend.routes import alerts, events, stats
+    from backend.routes import auth as auth_routes
+    from backend.routes import users
+    app.include_router(auth_routes.router, prefix="/api")
+    app.include_router(users.router, prefix="/api")
     app.include_router(events.router, prefix="/api")
     app.include_router(alerts.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")

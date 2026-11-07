@@ -5,11 +5,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend import storage
+from backend.auth import require_user
 from backend.db import Database
 from backend.deps import get_db
 from backend.models import Alert, AlertDetail, AlertStatus, AlertUpdate, Severity
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_user)])  # any logged-in user
 
 
 @router.get("/alerts", response_model=list[Alert])

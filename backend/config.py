@@ -51,6 +51,14 @@ class Settings(BaseSettings):
 
     api_key: str = ""
 
+    # Dashboard login (JWT = JSON Web Token). Empty secret means login is disabled (fail closed).
+    # Generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"
+
+    jwt_secret: str = ""
+    jwt_expire_minutes: int = Field(default=60, ge=1, le=1440)
+    login_rate_limit: int = Field(default=10, ge=1)  # login attempts per IP per window
+    login_rate_window_seconds: int = Field(default=60, ge=1)
+
     # Storage
 
     database_path: str = "data/cybermi6.db"
@@ -92,6 +100,12 @@ class Settings(BaseSettings):
     @property
     def web_path_disabled_categories(self) -> list[str]:
         return [c.strip().lower() for c in self.web_path_disabled.split(",") if c.strip()]
+
+    @model_validator(mode="after")
+    def _validate_jwt_secret(self) -> "Settings":
+        if self.jwt_secret and len(self.jwt_secret) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters (or empty to disable login)")
+        return self
 
     @model_validator(mode="after")
     def _validate_web_path_file(self) -> "Settings":

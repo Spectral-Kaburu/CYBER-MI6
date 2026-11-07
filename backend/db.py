@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # v2 added the users table
 DEFAULT_BUSY_TIMEOUT_MS = 5000
 
 _SCHEMA = """
@@ -71,6 +71,17 @@ CREATE INDEX IF NOT EXISTS idx_alerts_dedup      ON alerts (rule, src_ip, update
 CREATE INDEX IF NOT EXISTS idx_alerts_status     ON alerts (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_alerts_severity   ON alerts (severity, created_at);
 CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts (created_at);
+
+CREATE TABLE IF NOT EXISTS users (
+    id            TEXT PRIMARY KEY,                       -- uuid4 hex
+    username      TEXT NOT NULL COLLATE NOCASE UNIQUE,    -- case-insensitive: Admin == admin
+    password_hash TEXT NOT NULL,                          -- argon2id, never the password
+    role          TEXT NOT NULL CHECK (role IN ('admin', 'analyst')),
+    status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    last_login    TEXT
+);
 """
 
 
@@ -186,7 +197,9 @@ class Database:
             for statement in _split_statements(_SCHEMA):
                 conn.execute(statement)
             version = conn.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
+            if version < SCHEMA_VERSION:
+                # Every schema change so far only ADDS tables/indexes (CREATE IF NOT EXISTS above),
+                # so an older database is upgraded just by running the statements again.
                 conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             elif version > SCHEMA_VERSION:
                 raise RuntimeError(

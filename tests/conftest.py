@@ -1,4 +1,5 @@
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -68,9 +69,38 @@ def app_env(tmp_path, monkeypatch):
     get_settings.cache_clear()
 
 
-@pytest.fixture
-def api(app_env):
-    """A started application plus a TestClient. ``api.app.state.db`` is the live database."""
+@pytest.fixture(autouse=True)
+def fast_password_hashing(monkeypatch):
+    """argon2's real cost (~50 ms per hash) would dominate the suite. Hashes record their own
+    parameters, so cheap test hashes verify exactly like production ones."""
+    from argon2 import PasswordHasher
+
+    from backend import passwords
+
+    monkeypatch.setattr(passwords, "_hasher", PasswordHasher(time_cost=1, memory_cost=8, parallelism=1))
+
+
+def make_user(app, username="analyst1", password="correct horse battery", role="analyst", status="active"):
+    from backend import passwords, storage
+
+    return storage.create_user(
+        app.state.db, username=username, password_hash=passwords.hash_password(password), role=role, status=status
+    )
+
+
+def token_for(app, user):
+    from backend.auth import create_access_token
+    from backend.config import get_settings
+
+    return create_access_token(user, get_settings())
+
+
+def bearer(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+@contextmanager
+def _started_client():
     from fastapi.testclient import TestClient
 
     from backend.main import create_app
@@ -78,6 +108,21 @@ def api(app_env):
     app = create_app(mount_static=False)
     with TestClient(app) as client:
         client.app_ref = app
+        yield client
+
+
+@pytest.fixture
+def anon(app_env):
+    """A started application and a client that is NOT logged in."""
+    with _started_client() as client:
+        yield client
+
+
+@pytest.fixture
+def api(app_env):
+    """A started application and a client logged in as an analyst (``api.app_ref.state.db`` is live)."""
+    with _started_client() as client:
+        client.headers.update(bearer(token_for(client.app_ref, make_user(client.app_ref))))
         yield client
 
 
