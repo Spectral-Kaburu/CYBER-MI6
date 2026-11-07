@@ -332,6 +332,16 @@ class Alert(AlertIn):
     count: int = 1
 
 
+class AlertDetail(Alert):
+    """Response of GET /api/alerts/{id}: the alert plus its evidence events.
+
+    Events already removed by retention are silently absent, so ``evidence`` can be
+    shorter than ``evidence_event_ids``.
+    """
+
+    evidence: list[Event] = Field(default_factory=list)
+
+
 class AlertUpdate(BaseModel):
     """Body of PATCH /api/alerts/{id}."""
 
