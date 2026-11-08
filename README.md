@@ -27,9 +27,9 @@ CYBER-MI6 is a network and web-application threat detection prototype. It ingest
 | Dashboard login (JWT), user accounts, admin-only user management | Built, tested |
 | Live WebSocket feed (login token required) | Built, tested |
 | Demo event generator (`tools/send_demo_events.py`) | Built, tested |
-| Svelte dashboard | Built; type-checks and builds. Not yet exercised against the live API in a browser |
+| Svelte dashboard | Built; type-checks, builds, and passes a real-browser run against the live backend (login, live updates, alert detail, status changes, blocklist, admin page, logout) |
 | Setup script (macOS, Windows, Linux) | Not built yet |
-| Blocklist (record only) | Not built yet |
+| Blocklist (`/api/blocklist`, record only: addresses are listed, nothing is actually blocked) | Built, tested |
 | Scapy network sensor (`collectors/`) | Not built yet |
 | Web-app event helper, test web app, CI | Not built yet |
 
@@ -82,7 +82,7 @@ CYBER-MI6/
 ├── app/                    # CORE (no web code)
 │   ├── models.py           # Pydantic models: events, alerts, users, API shapes
 │   ├── config.py           # Settings from .env
-│   ├── db.py               # SQLite connection and schema (v2: events, alerts, users)
+│   ├── db.py               # SQLite connection and schema (v3: events, alerts, users, blocklist)
 │   ├── storage.py          # The only module that writes SQL
 │   ├── passwords.py        # argon2id hashing
 │   ├── manage.py           # python -m app.manage create-admin | reset-password
@@ -93,7 +93,7 @@ CYBER-MI6/
 │   ├── security.py         # Ingestion API key check
 │   ├── ratelimit.py        # Sliding-window rate limiter
 │   ├── deps.py             # FastAPI dependency helpers
-│   └── routes/             # events, alerts, stats, auth (/token), users, websocket
+│   └── routes/             # events, alerts, stats, blocklist, auth (/token), users, websocket
 ├── frontend/               # Svelte 5 dashboard
 ├── tools/                  # send_demo_events.py
 ├── tests/                  # pytest suite
@@ -182,7 +182,13 @@ It reads `API_KEY` from `.env`. Alerts appear in the dashboard as the events arr
 ### Run the tests
 
 ```bash
-python -m pytest -q        # test dependencies are in requirements.txt
+python -m pytest -q        # about 500 tests, ~30 s; test dependencies are in requirements.txt
+```
+
+There is also a real-browser check that starts the backend on a throwaway database and drives the dashboard in headless Chrome (login, live updates, alerts, blocklist, admin page, logout):
+
+```bash
+python tests/e2e_browser/run.py     # needs Node.js; set CHROME_PATH to use your own Chrome
 ```
 
 ---

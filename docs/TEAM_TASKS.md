@@ -25,7 +25,7 @@
 - [x] Add rate limiting on ingestion and an event retention cleanup job
 - [x] Added in November: dashboard login (argon2id + JWT), admin-only user management, authenticated WebSocket, `app/` + `backend/` split (see `docs/ARCHITECTURE.md`)
 - [ ] Setup script for macOS, Windows and Linux (installs dependencies, creates `.env` secrets, runs `python -m app.manage create-admin`)
-- [ ] Blocklist: record-only endpoints, after the dashboard has been checked against the live API
+- [x] Blocklist: record-only endpoints (`/api/blocklist`); enforcement is not built
 - **Deliverable:** by end of week 1–2, a running API with `/docs` and demo data so frontend and detection can start.
 
 ## Member 2: Sensor Engineer (Backend)

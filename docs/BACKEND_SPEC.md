@@ -13,6 +13,9 @@ Authentication: sensors send the ingestion API key; people log in at `/api/token
 | GET | `/api/alerts/{id}` | Alert detail: the alert plus its `evidence` events. Evidence already removed by retention is omitted. Requires login |
 | PATCH | `/api/alerts/{id}` | Change status (`new`, `investigating`, `resolved`, `false_positive`). Any status may move to any other for now. Requires login |
 | GET | `/api/stats` | Counts for the dashboard (events, alerts by severity and status, top source IPs). Requires login |
+| GET | `/api/blocklist` | Addresses an analyst marked as blocked, newest first. **Record only: nothing enforces it.** Requires login |
+| POST | `/api/blocklist` | Body `{"ip", "alert_id"?, "reason"?}`. `201` new entry, `200` existing entry if already listed, `422` invalid address or unknown alert. Requires login |
+| DELETE | `/api/blocklist/{ip}` | Remove an address (`204`; `404` if not listed). Any spelling of an IPv6 address matches. Requires login |
 | GET | `/api/users` | List dashboard accounts. **Admin only** |
 | POST | `/api/users` | Create an account (`username`, `password`, `role`, `status`). **Admin only** |
 | PATCH | `/api/users/{id}` | Edit username, password, role or status. **Admin only** |

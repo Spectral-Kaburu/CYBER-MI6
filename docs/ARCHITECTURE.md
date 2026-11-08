@@ -86,11 +86,12 @@ Rules for events:
 | `events` | id, type, timestamp, received_at, source, src_ip, dst_ip, dst_port, protocol, dns_name, username, http_method, http_path, http_status, user_agent, details (JSON) |
 | `alerts` | id, created_at, updated_at, rule, severity, title, status, src_ip, evidence_event_ids (JSON), count, explanation (JSON) |
 | `users` | id (uuid), username (unique, case-insensitive), password_hash (argon2id), role, status, created_at, updated_at, last_login |
+| `blocklist` | ip (canonical form, primary key), alert_id, reason, blocked_at, blocked_by. **Record only**: nothing refuses traffic from a listed address |
 
 - Indexes cover time, type + time, source IP + type + time, and username + time on events, and rule/IP, status, severity and creation time on alerts.
 - WAL mode is on for concurrent reads while writing.
 - An hourly retention job deletes events older than `EVENT_RETENTION_DAYS`. Alerts are kept; evidence events that were purged are simply missing from an alert's detail.
-- Schema version 2 added `users`. A version 1 database upgrades itself on startup and keeps its data.
+- Schema version 2 added `users` and version 3 added `blocklist`. An older database upgrades itself on startup and keeps its data.
 - An `alert_notes` table was considered and is not built.
 
 ---
@@ -148,6 +149,7 @@ To add a rule: create a new file in `app/detection/`, import it in `engine.py`, 
 | 2026-11 | Dashboard login: argon2id + JWT (HS256, 60 min), read routes and WebSocket require it | A SOC dashboard should not show alerts to anyone on the network. JWT keeps the API stateless; the user is re-read from the database per request so revocation by disabling is immediate |
 | 2026-11 | WebSocket authenticates with a first message, not a URL token | Tokens in URLs leak through logs and history; browsers cannot set headers on WebSockets |
 | 2026-11 | Any alert status may move to any other (for now) | The spec defines no workflow; revisit when one is agreed (`docs/FUTURE_CHANGES.md`) |
+| 2026-11 | Blocklist is record only | The dashboard needs somewhere to mark an address; real enforcement (what refuses the traffic, and where) is a separate design. Listed addresses can still send events |
 | 2026-11 | `POST /api/events` accepts one event or `{"events": [...]}` | The sensor example posts single events; batching is cheaper for busy sources |
 | 2026-10 | Svelte 5 + Vite for dashboard | TypeScript, reactive state, component model; faster than plain JS for the dashboard complexity |
 | 2026-10 | SQLite over PostgreSQL | No separate server; WAL mode handles the expected read/write concurrency at demo scale |

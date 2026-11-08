@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
-SCHEMA_VERSION = 2  # v2 added the users table
+SCHEMA_VERSION = 3  # v2 added users, v3 added blocklist
 DEFAULT_BUSY_TIMEOUT_MS = 5000
 
 _SCHEMA = """
@@ -81,6 +81,15 @@ CREATE TABLE IF NOT EXISTS users (
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL,
     last_login    TEXT
+);
+
+-- Record only: nothing in the system refuses traffic from these addresses (yet).
+CREATE TABLE IF NOT EXISTS blocklist (
+    ip         TEXT PRIMARY KEY,          -- canonical form, so ::1 and 0:0:0:0:0:0:0:1 are one entry
+    alert_id   INTEGER,                   -- the alert it was blocked from, if any
+    reason     TEXT,
+    blocked_at TEXT NOT NULL,
+    blocked_by TEXT NOT NULL              -- username at the time (kept even if the account is later renamed)
 );
 """
 

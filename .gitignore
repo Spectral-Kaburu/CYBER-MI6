@@ -42,3 +42,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 graphify-out/
+
+# --- browser e2e check (tests/e2e_browser): installed packages and screenshots
+tests/e2e_browser/node_modules/
+tests/e2e_browser/package-lock.json
+tests/e2e_browser/shots/

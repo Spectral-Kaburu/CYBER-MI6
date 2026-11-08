@@ -11,15 +11,14 @@ it when it is fixed.
 | **Setup script** (macOS, Windows, Linux) | Installs dependencies, creates `.env` with generated secrets, runs the first-admin command. |
 | **Scapy network sensor** (`collectors/scapy_collector.py`, `docs/SENSOR_SETUP.md`) | Waits until after the demo generator (built). Needs root or Npcap and a real network to test. |
 | **Web-app event helper and test web app** (`examples/`) | Described in `docs/BACKEND_SPEC.md`; the only source of real `auth_failure` and `http_request` events. |
-| **CI** (GitHub Actions: ruff + pytest + `svelte-check`) | None exists. The suite runs in about 30 seconds. |
-| **Browser check of the dashboard against the live API** | The frontend type-checks and builds, but nobody has driven it in a browser against the real backend yet. |
-| **Linting** | `ruff.toml` exists (`ruff check .`, rules E, W, F, B). New code is clean. 21 findings remain in older files (whitespace, unused imports, a few long lines, one `zip()` without `strict=`; 17 are auto-fixable with `ruff --fix`) and were left alone to keep other people's diffs small. Fix them, then add `ruff check .` to CI. |
+| **CI** (GitHub Actions: ruff + pytest + `svelte-check`) | None exists. The suite runs in about 30 seconds. The browser check (`tests/e2e_browser/run.py`) could join it once a Chrome is available on the runner. |
+| **Linting** | `ruff.toml` exists (`ruff check .`, rules E, W, F, B). New code is clean. 22 findings remain in older files (whitespace, unused imports, a few long lines, one `zip()` without `strict=`; most are auto-fixable with `ruff --fix`) and were left alone to keep other people's diffs small. Fix them, then add `ruff check .` to CI. |
 
 ## Decided to defer
 
 | Item | Now | Change when |
 |---|---|---|
-| **Blocklist** (`GET/POST/DELETE /api/blocklist`) | Not built. The frontend has a proposed contract in `frontend/src/lib/api/client.ts` and shows "not available" on a 404. | Decided: **record only** (a table of addresses with a reason and who added it; nothing is actually blocked). Built after the browser check. Real enforcement needs its own design (what refuses the traffic?). Also add `DELETE` to the CORS `allow_methods` in `main.py`. |
+| **Blocklist enforcement** | The list is built and **record only**: `/api/blocklist` stores addresses and the dashboard shows them, but nothing refuses traffic from them, and listed addresses can still send events. | Decide what enforcing means first (reject ingestion from the address? a firewall rule on the sensor host? an alert annotation?). Options differ a lot in risk: blocking by source IP at ingestion is easy but sources are often spoofable or shared (NAT). |
 | **Alert status transitions** | `PATCH /api/alerts/{id}` allows any status to any other (e.g. `resolved` back to `new`). | You want a workflow. Put the allowed moves next to `AlertStatus` in `models.py` and check them inside the same transaction as the update (`storage.update_alert_status`), so two analysts cannot race. |
 
 ## Security hardening

@@ -94,7 +94,7 @@ def create_app(*, mount_static: bool = True) -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.origins_list,
-            allow_methods=["GET", "POST", "PATCH"],
+            allow_methods=["GET", "POST", "PATCH", "DELETE"],
             allow_headers=["Content-Type", "X-API-Key", "Authorization"],
         )
 
@@ -108,11 +108,12 @@ def create_app(*, mount_static: bool = True) -> FastAPI:
         return error_response(exc.status_code, f"http_{exc.status_code}", exc.detail, exc.headers)
 
     app.include_router(ws_module.router)
-    from backend.routes import alerts, events, stats
+    from backend.routes import alerts, blocklist, events, stats
     from backend.routes import auth as auth_routes
     from backend.routes import users
     app.include_router(auth_routes.router, prefix="/api")
     app.include_router(users.router, prefix="/api")
+    app.include_router(blocklist.router, prefix="/api")
     app.include_router(events.router, prefix="/api")
     app.include_router(alerts.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")

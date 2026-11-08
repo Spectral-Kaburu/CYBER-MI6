@@ -443,3 +443,38 @@ class UserUpdate(BaseModel):
 class UserStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: UserStatus
+
+
+# --------------------------------------------------------------------------
+# Blocklist (record only: nothing enforces it yet)
+# --------------------------------------------------------------------------
+def canonical_ip(value: str) -> str:
+    """Validate an IPv4/IPv6 address and return its canonical text form."""
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        raise ValueError(f"not a valid IP address: {value!r}") from None
+
+
+class BlockRequest(BaseModel):
+    """POST /api/blocklist."""
+
+    model_config = ConfigDict(extra="forbid")
+    ip: str
+    alert_id: int | None = Field(default=None, ge=1)
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = None
+
+    @field_validator("ip")
+    @classmethod
+    def _valid_ip(cls, value: str) -> str:
+        return canonical_ip(value)
+
+
+class BlockedIp(BaseModel):
+    """Mirrors BlockedIp in frontend/src/lib/types.ts (``blocked_by`` is an addition)."""
+
+    ip: str
+    alert_id: int | None = None
+    reason: str | None = None
+    blocked_at: datetime
+    blocked_by: str

@@ -19,7 +19,7 @@ How the API is built, how to test it, and what is still open. The core logic it 
 | `POST /api/token` | `backend/routes/auth.py` | Done |
 | `/api/users*` (admin only) | `backend/routes/users.py` | Done |
 | `/ws` and the connection manager | `backend/routes/websocket.py` | Done |
-| Blocklist endpoints | | Not built (record-only version planned) |
+| `/api/blocklist` (record only) | `backend/routes/blocklist.py` | Done |
 
 ## Files
 
@@ -45,6 +45,9 @@ How the API is built, how to test it, and what is still open. The core logic it 
 ### `routes/alerts.py`, `routes/stats.py`
 Thin wrappers over `app/storage.py`. Unknown filter values are 422; an unknown alert id is 404.
 
+### `routes/blocklist.py`
+List, add and remove blocked addresses, matching the contract in `frontend/src/lib/api/client.ts`. Addresses are validated and stored in canonical form; adding one twice is idempotent; each entry records who added it (`blocked_by`). **Record only**: no other code reads this list.
+
 ### `routes/auth.py`, `routes/users.py`
 Login (`POST /api/token`) and admin user management. Login rate limits per IP, always runs one argon2 verification even for an unknown username, and gives one error for every failure. User routes ignore client-supplied `permissions` and refuse to remove the last active admin.
 
@@ -63,12 +66,13 @@ Tests never touch the real `data/` folder. Route tests start the whole app on a 
 
 | File | What it checks |
 |---|---|
-| `test_routes_events.py`, `test_routes_alerts_stats.py` | Every events, alerts and stats route: success, validation, 401/404/413/422/429/503, broadcasting |
+| `test_routes_events.py`, `test_routes_alerts_stats.py`, `test_routes_blocklist.py` | Every events, alerts, stats and blocklist route: success, validation, 401/404/413/422/429/503, broadcasting |
 | `test_auth_routes.py`, `test_passwords.py` | Login, token tampering, route protection, user administration, last-admin rule, WebSocket handshake |
 | `test_detectors_via_api.py` | Each of the four rules, end to end through the HTTP API |
 | `test_demo_tool.py` | The demo generator against a real server |
 | `test_architecture.py` | `app/` never imports `backend/` or a web framework |
 | `test_auth.py`, `test_ratelimit.py`, `test_ws.py`, `test_app.py` | API key, rate limiter, WebSocket transport, app skeleton |
+| `tests/e2e_browser/run.py` | Not part of pytest. Starts the backend and drives the real dashboard in headless Chrome: login, live WebSocket updates, alert detail, status change, blocklist, admin page, logout (23 checks) |
 | `test_perf.py` | Window queries stay fast with 100,000 events (each mutating test uses its own copy of the data) |
 | other `test_*.py` | Core: models, database, storage, detection rules, concurrency |
 

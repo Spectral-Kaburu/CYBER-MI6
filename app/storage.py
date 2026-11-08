@@ -12,6 +12,7 @@ Alerts   insert_alert, upsert_alert, get_alert, list_alerts, update_alert_status
          get_alert_evidence
 Dash     stats
 Users    create_user, get_user, get_user_by_username, list_users, update_user, record_login
+Blocks   add_block, list_blocked, remove_block
 Upkeep   purge_old_events
 
 All times are UTC. Arguments named ``since`` / ``until`` / ``now`` are datetimes
@@ -35,6 +36,7 @@ from app.models import (
     Alert,
     AlertIn,
     AlertUpdate,
+    BlockedIp,
     Event,
     EventIn,
     Stats,
@@ -667,3 +669,50 @@ def update_user(
 def record_login(db: Database, user_id: str, *, now: datetime | None = None) -> None:
     with db.transaction() as conn:
         conn.execute("UPDATE users SET last_login = ? WHERE id = ?", (to_db_ts(now or utcnow()), user_id))
+
+
+# --------------------------------------------------------------------------
+# Blocklist (record only)
+# --------------------------------------------------------------------------
+def _row_to_block(row) -> BlockedIp:
+    return BlockedIp(
+        ip=row["ip"],
+        alert_id=row["alert_id"],
+        reason=row["reason"],
+        blocked_at=from_db_ts(row["blocked_at"]),
+        blocked_by=row["blocked_by"],
+    )
+
+
+def add_block(
+    db: Database,
+    *,
+    ip: str,
+    alert_id: int | None,
+    reason: str | None,
+    blocked_by: str,
+    now: datetime | None = None,
+) -> tuple[BlockedIp, bool]:
+    """Record an address. Returns (entry, created). Blocking an address that is already
+    blocked changes nothing and returns the existing entry with created=False."""
+    with db.transaction() as conn:
+        row = conn.execute("SELECT * FROM blocklist WHERE ip = ?", (ip,)).fetchone()
+        if row is not None:
+            return _row_to_block(row), False
+        conn.execute(
+            "INSERT INTO blocklist (ip, alert_id, reason, blocked_at, blocked_by) VALUES (?, ?, ?, ?, ?)",
+            (ip, alert_id, reason or None, to_db_ts(now or utcnow()), blocked_by),
+        )
+        return _row_to_block(conn.execute("SELECT * FROM blocklist WHERE ip = ?", (ip,)).fetchone()), True
+
+
+def list_blocked(db: Database) -> list[BlockedIp]:
+    """Newest first."""
+    rows = db.connection().execute("SELECT * FROM blocklist ORDER BY blocked_at DESC, ip").fetchall()
+    return [_row_to_block(r) for r in rows]
+
+
+def remove_block(db: Database, ip: str) -> bool:
+    """True if the address was on the list."""
+    with db.transaction() as conn:
+        return conn.execute("DELETE FROM blocklist WHERE ip = ?", (ip,)).rowcount > 0
