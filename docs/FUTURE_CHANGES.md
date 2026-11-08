@@ -4,11 +4,22 @@ Things that work today but are deliberately simple, or are known gaps. Each row 
 code does now, why it may matter, and what to change. Add a row when you take a shortcut; delete
 it when it is fixed.
 
+## Not built yet
+
+| Item | Notes |
+|---|---|
+| **Setup script** (macOS, Windows, Linux) | Installs dependencies, creates `.env` with generated secrets, runs the first-admin command. |
+| **Scapy network sensor** (`collectors/scapy_collector.py`, `docs/SENSOR_SETUP.md`) | Waits until after the demo generator (built). Needs root or Npcap and a real network to test. |
+| **Web-app event helper and test web app** (`examples/`) | Described in `docs/BACKEND_SPEC.md`; the only source of real `auth_failure` and `http_request` events. |
+| **CI** (GitHub Actions: ruff + pytest + `svelte-check`) | None exists. The suite runs in about 30 seconds. |
+| **Browser check of the dashboard against the live API** | The frontend type-checks and builds, but nobody has driven it in a browser against the real backend yet. |
+| **Linting** | `ruff` is not configured. A default run reports about 67 style findings (import order, unused imports) in older files; they were left alone to keep other people's diffs small. |
+
 ## Decided to defer
 
 | Item | Now | Change when |
 |---|---|---|
-| **Blocklist** (`GET/POST/DELETE /api/blocklist`) | Not built. The frontend has a proposed contract in `frontend/src/lib/api/client.ts` and shows "not available" on a 404. | After everything else is integrated. Needs an enforcement story first (what actually refuses the traffic?), a `blocklist` table, and `DELETE` added to the CORS `allow_methods` in `main.py`. |
+| **Blocklist** (`GET/POST/DELETE /api/blocklist`) | Not built. The frontend has a proposed contract in `frontend/src/lib/api/client.ts` and shows "not available" on a 404. | Decided: **record only** (a table of addresses with a reason and who added it; nothing is actually blocked). Built after the browser check. Real enforcement needs its own design (what refuses the traffic?). Also add `DELETE` to the CORS `allow_methods` in `main.py`. |
 | **Alert status transitions** | `PATCH /api/alerts/{id}` allows any status to any other (e.g. `resolved` back to `new`). | You want a workflow. Put the allowed moves next to `AlertStatus` in `models.py` and check them inside the same transaction as the update (`storage.update_alert_status`), so two analysts cannot race. |
 
 ## Security hardening
@@ -31,7 +42,7 @@ it when it is fixed.
 | Item | Now |
 |---|---|
 | **Change own password / profile** | `frontend/src/views/UserProfileSettings.svelte` is an empty file and no `PATCH /api/users/me` exists. Admins can reset anyone's password; users cannot change their own. |
-| **"Recover Access" link** | Login links to `#/forgot-password`, which has no view or endpoint. The CLI `python -m backend.manage reset-password <user>` is the recovery path for now. |
+| **"Recover Access" link** | Login links to `#/forgot-password`, which has no view or endpoint. The CLI `python -m app.manage reset-password <user>` is the recovery path for now. |
 | **Who changed an alert** | Alerts store no actor. Add `updated_by` and an audit table if you need to answer "who marked this false positive?". |
 | **Live update on status change** | `PATCH /api/alerts/{id}` does not broadcast, so other open dashboards see the change only on their next refresh. |
 | **Login attempts as events** | Failed logins go only to the server log. They could be fed into the detection engine as `auth_failure` events so CYBER-MI6 monitors itself. |
