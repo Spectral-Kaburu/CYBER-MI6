@@ -45,7 +45,7 @@ def test_detector_alert_is_exposed_through_the_api(api, rule):
 
 
 def test_all_four_rules_are_registered_in_the_engine():
-    from backend.detection import engine
+    from app.detection import engine
 
     assert len(engine.RULES) == 4  # port_scan, dns_anomaly, auth_failures, web_paths
 

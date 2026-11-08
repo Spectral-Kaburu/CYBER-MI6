@@ -1,6 +1,6 @@
 from fastapi import Request
 
-from backend.db import Database
+from app.db import Database
 
 
 def get_db(request: Request) -> Database:

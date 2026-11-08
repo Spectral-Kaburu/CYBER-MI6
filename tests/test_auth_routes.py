@@ -7,9 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from backend import storage
+from app import storage
 from backend.auth import ALGORITHM, ISSUER, WS_CLOSE_UNAUTHORIZED
-from backend.config import Settings, get_settings
+from app.config import Settings, get_settings
 from backend.main import create_app
 from tests.conftest import JWT_SECRET, bearer, make_user, token_for
 
@@ -94,7 +94,7 @@ def test_short_jwt_secret_is_rejected_at_startup(monkeypatch):
 def test_password_is_upgraded_when_hash_parameters_are_outdated(anon, monkeypatch):
     from argon2 import PasswordHasher
 
-    from backend import passwords
+    from app import passwords
 
     u = make_user(anon.app_ref)
     old_hash = storage.get_user(anon.app_ref.state.db, u.id).password_hash
@@ -392,7 +392,7 @@ def test_unauthenticated_socket_never_receives_broadcasts(anon):
 
 # ---- manage CLI helpers -----------------------------------------------------
 def test_create_admin_and_reset_password_helpers(db):
-    from backend import manage, passwords
+    from app import manage, passwords
 
     manage.create_admin(db, "first_admin", "a-long-enough-pass")
     user = storage.get_user_by_username(db, "first_admin")
@@ -410,7 +410,7 @@ def test_create_admin_and_reset_password_helpers(db):
 def test_unknown_username_still_costs_one_password_verification(anon, monkeypatch):
     # Timing equalisation: skipping the hash check for unknown users would let an attacker tell
     # real usernames from fake ones by response time.
-    from backend import passwords
+    from app import passwords
 
     calls = []
     real = passwords.verify_password

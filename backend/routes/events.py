@@ -8,13 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import Discriminator, Tag
 from starlette.concurrency import run_in_threadpool
 
-from backend import storage
+from app import storage
 from backend.auth import require_user
-from backend.config import Settings, get_settings
-from backend.db import Database
+from app.config import Settings, get_settings
+from app.db import Database
 from backend.deps import get_db, get_ingest_limiter
-from backend.detection import engine
-from backend.models import Event, EventBatch, EventIn, EventType
+from app.detection import engine
+from app.models import Event, EventBatch, EventIn, EventType
 from backend.ratelimit import SlidingWindowLimiter
 from backend.routes.websocket import broadcast_alert, broadcast_event
 from backend.security import require_api_key

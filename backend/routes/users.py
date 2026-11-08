@@ -2,10 +2,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from backend import auth, passwords, storage
-from backend.db import Database
+from backend import auth
+from app import passwords, storage
+from app.db import Database
 from backend.deps import get_db
-from backend.models import UserCreate, UserProfile, UserStatusUpdate, UserUpdate
+from app.models import UserCreate, UserProfile, UserStatusUpdate, UserUpdate
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])
 

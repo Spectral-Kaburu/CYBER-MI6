@@ -1,6 +1,6 @@
 from argon2 import PasswordHasher
 
-from backend import passwords
+from app import passwords
 
 
 def test_hash_is_argon2id_and_never_contains_the_password():

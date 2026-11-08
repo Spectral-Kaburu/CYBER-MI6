@@ -23,11 +23,11 @@ from fastapi import Depends, HTTPException, WebSocket
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.concurrency import run_in_threadpool
 
-from backend import storage
-from backend.config import Settings, get_settings
-from backend.db import Database
+from app import storage
+from app.config import Settings, get_settings
+from app.db import Database
 from backend.deps import get_db
-from backend.models import ROLE_PERMISSIONS, UserProfile
+from app.models import ROLE_PERMISSIONS, UserProfile
 
 log = logging.getLogger(__name__)
 

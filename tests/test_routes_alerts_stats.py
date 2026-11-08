@@ -1,5 +1,5 @@
-from backend import storage
-from backend.models import AlertIn, EventIn, utcnow
+from app import storage
+from app.models import AlertIn, EventIn, utcnow
 from tests.conftest import alert as make_alert
 
 

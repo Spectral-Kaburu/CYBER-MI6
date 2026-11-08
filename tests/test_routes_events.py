@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-from backend import storage
-from backend.models import utcnow
+from app import storage
+from app.models import utcnow
 from backend.routes import websocket as ws_module
 from tests.conftest import API_KEY, event_json, ingest_headers
 
@@ -56,7 +56,7 @@ def test_empty_batch_is_422(api):
 
 
 def test_batch_over_configured_limit_is_413(api, monkeypatch):
-    from backend.config import get_settings
+    from app.config import get_settings
 
     monkeypatch.setenv("INGEST_MAX_BATCH", "2")
     get_settings.cache_clear()
@@ -84,7 +84,7 @@ def test_rate_limit_also_throttles_bad_keys(api):
 def test_ingest_disabled_when_key_unconfigured(app_env, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from backend.config import get_settings
+    from app.config import get_settings
     from backend.main import create_app
 
     monkeypatch.setenv("API_KEY", "")
@@ -101,7 +101,7 @@ def test_port_scan_batch_raises_an_alert(api):
 
 
 def test_detection_failure_does_not_fail_ingest(api, monkeypatch):
-    from backend.detection import engine
+    from app.detection import engine
 
     def boom(*a, **k):
         raise RuntimeError("engine exploded")
@@ -130,7 +130,7 @@ def test_ingest_broadcasts_event_and_alert(api, monkeypatch):
 def seed(api):
     db = api.app_ref.state.db
     now = utcnow()
-    from backend.models import EventIn
+    from app.models import EventIn
 
     storage.insert_events(db, [
         EventIn(type="dns_query", timestamp=now - timedelta(hours=2), source="s", src_ip="10.0.0.1", dns_name="a.com"),

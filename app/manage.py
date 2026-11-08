@@ -1,7 +1,7 @@
 """One-off administration commands. The setup script wraps these.
 
-    python -m backend.manage create-admin
-    python -m backend.manage reset-password <username>
+    python -m app.manage create-admin
+    python -m app.manage reset-password <username>
 
 Passwords are read with getpass, so they never appear in the shell history or in ``ps``.
 """
@@ -10,10 +10,10 @@ import argparse
 import getpass
 import sys
 
-from backend import passwords, storage
-from backend.config import get_settings
-from backend.db import open_database
-from backend.models import MAX_PASSWORD_LEN, MIN_PASSWORD_LEN, Username
+from app import passwords, storage
+from app.config import get_settings
+from app.db import open_database
+from app.models import MAX_PASSWORD_LEN, MIN_PASSWORD_LEN, Username
 from pydantic import TypeAdapter, ValidationError
 
 
@@ -43,7 +43,7 @@ def reset_password(db, username: str, password: str) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m backend.manage")
+    parser = argparse.ArgumentParser(prog="python -m app.manage")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("create-admin", help="create an admin account (prompts for the username and password)")
     reset = sub.add_parser("reset-password", help="set a new password for an existing account")

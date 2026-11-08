@@ -2,11 +2,11 @@
 
 from fastapi import APIRouter, Depends
 
-from backend import storage
+from app import storage
 from backend.auth import require_user
-from backend.db import Database
+from app.db import Database
 from backend.deps import get_db
-from backend.models import Stats
+from app.models import Stats
 
 router = APIRouter(dependencies=[Depends(require_user)])  # any logged-in user
 

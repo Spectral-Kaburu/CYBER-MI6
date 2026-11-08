@@ -7,8 +7,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.db import open_database  # noqa: E402
-from backend.models import AlertIn, EventIn  # noqa: E402
+from app.db import open_database  # noqa: E402
+from app.models import AlertIn, EventIn  # noqa: E402
 
 NOW = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)  # fixed, safely in the past (models reject future timestamps)
 
@@ -58,7 +58,7 @@ JWT_SECRET = "test-jwt-secret-that-is-at-least-32-chars"
 @pytest.fixture
 def app_env(tmp_path, monkeypatch):
     """Isolated settings: own database file, known keys, nothing cached from other tests."""
-    from backend.config import get_settings
+    from app.config import get_settings
 
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "api.db"))
     monkeypatch.setenv("API_KEY", API_KEY)
@@ -75,13 +75,13 @@ def fast_password_hashing(monkeypatch):
     parameters, so cheap test hashes verify exactly like production ones."""
     from argon2 import PasswordHasher
 
-    from backend import passwords
+    from app import passwords
 
     monkeypatch.setattr(passwords, "_hasher", PasswordHasher(time_cost=1, memory_cost=8, parallelism=1))
 
 
 def make_user(app, username="analyst1", password="correct horse battery", role="analyst", status="active"):
-    from backend import passwords, storage
+    from app import passwords, storage
 
     return storage.create_user(
         app.state.db, username=username, password_hash=passwords.hash_password(password), role=role, status=status
@@ -90,7 +90,7 @@ def make_user(app, username="analyst1", password="correct horse battery", role="
 
 def token_for(app, user):
     from backend.auth import create_access_token
-    from backend.config import get_settings
+    from app.config import get_settings
 
     return create_access_token(user, get_settings())
 
@@ -132,7 +132,7 @@ def ingest_headers():
 
 def event_json(**over):
     """A valid event body stamped 'now' (models reject timestamps in the future)."""
-    from backend.models import utcnow
+    from app.models import utcnow
 
     body = {
         "type": "network_connection",

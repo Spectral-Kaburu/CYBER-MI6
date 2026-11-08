@@ -12,8 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from backend.config import get_settings
-from backend.db import open_database
+from app.config import get_settings
+from app.db import open_database
 from backend.ratelimit import SlidingWindowLimiter
 from backend.routes import websocket as ws_module
 
@@ -38,7 +38,7 @@ def error_response(status: int, code: str, detail, headers=None) -> JSONResponse
 
 
 async def _retention_loop(db, retention_days: int, executor: ThreadPoolExecutor) -> None:
-    from backend import storage
+    from app import storage
     loop = asyncio.get_running_loop()
     while True:
         try:

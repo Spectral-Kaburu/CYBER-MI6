@@ -4,11 +4,12 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend import auth, passwords, storage
-from backend.config import Settings, get_settings
-from backend.db import Database
+from backend import auth
+from app import passwords, storage
+from app.config import Settings, get_settings
+from app.db import Database
 from backend.deps import get_db, get_login_limiter
-from backend.models import AuthResponse, LoginRequest
+from app.models import AuthResponse, LoginRequest
 from backend.ratelimit import SlidingWindowLimiter
 
 log = logging.getLogger(__name__)
