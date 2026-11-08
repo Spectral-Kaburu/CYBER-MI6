@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+# frontend/.env.live holds no secrets: it only switches the dev server to the real API
+!frontend/.env.live
 
 # --- databases (events can contain DNS names / IPs: never share or commit) ---
 data/
