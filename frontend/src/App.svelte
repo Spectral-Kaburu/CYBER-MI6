@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import AppHeader from './components/AppHeader.svelte';
   import DevScenarioNotice from './components/DevScenarioNotice.svelte';
   import { displayedConnection, feed } from './lib/live';
@@ -22,7 +23,7 @@
 
   onMount(() => {
     auth.init();
-    if ($auth.isAuthenticated) {
+    if (get(auth).isAuthenticated) {
       startLive();
     }
   });
@@ -36,7 +37,10 @@
   });
 </script>
 
-{#if !$auth.isAuthenticated}
+{#if !$auth.initialized}
+  <!-- auth.init() hasn't run yet — don't mount any views so they can't fire
+       unauthenticated requests before the token is loaded from localStorage. -->
+{:else if !$auth.isAuthenticated}
   <main class="auth-layout">
     <Login />
   </main>

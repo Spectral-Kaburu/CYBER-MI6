@@ -30,7 +30,12 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
   const response = await fetch(`${API_BASE}${endpoint}`, config);
 
   if (response.status === 401 && requireAuth) {
-    auth.logout();
+    const { isAuthenticated } = get(auth);
+    if (isAuthenticated) {
+      // Only logout if we actually had a session — genuine expiry, not a
+      // request that fired before auth.init() had a chance to run.
+      auth.logout();
+    }
     throw new Error('Session expired. Please log in again.');
   }
 
