@@ -3,7 +3,7 @@ from datetime import timedelta
 from app import storage
 from app.models import utcnow
 from backend.routes import websocket as ws_module
-from tests.conftest import API_KEY, event_json, ingest_headers
+from tests.conftest import event_json, ingest_headers
 
 
 def post(api, body, headers=None):

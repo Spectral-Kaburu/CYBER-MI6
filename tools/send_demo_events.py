@@ -110,7 +110,11 @@ class SendError(Exception):
     """Something went wrong sending; the message is meant to be shown to the person running this."""
 
 
-def find_api_key(explicit: str | None, env: dict[str, str] | None = None, search: list[Path] | None = None) -> str | None:
+def find_api_key(
+    explicit: str | None,
+    env: dict[str, str] | None = None,
+    search: list[Path] | None = None,
+) -> str | None:
     if explicit:
         return explicit
     env = os.environ if env is None else env
@@ -143,12 +147,16 @@ def send_batch(url: str, api_key: str, events: list[dict], *, retries: int = 3, 
                 sleep(min(int(err.headers.get("Retry-After", "5")), 30))
                 continue
             if err.code == 401:
-                raise SendError("The server rejected the API key (401). Check API_KEY against the server's .env.")
+                raise SendError(
+                    "The server rejected the API key (401). Check API_KEY against the server's .env."
+                ) from None
             if err.code == 503:
-                raise SendError("The server has no API_KEY configured, so ingestion is disabled (503).")
-            raise SendError(f"The server answered {err.code}: {detail}")
+                raise SendError(
+                    "The server has no API_KEY configured, so ingestion is disabled (503)."
+                ) from None
+            raise SendError(f"The server answered {err.code}: {detail}") from None
         except urllib.error.URLError as err:
-            raise SendError(f"Cannot reach {url} ({err.reason}). Is the backend running?")
+            raise SendError(f"Cannot reach {url} ({err.reason}). Is the backend running?") from None
     raise SendError("Still rate limited after several retries (429).")
 
 
@@ -186,12 +194,15 @@ def run_demo(rng, emit, *, rate: float, duration: float, pause: float, log=print
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Send synthetic events to CYBER-MI6.")
-    parser.add_argument("--url", default=os.environ.get("CYBER_MI6_URL", DEFAULT_URL), help=f"API base URL (default {DEFAULT_URL})")
+    parser.add_argument("--url", default=os.environ.get("CYBER_MI6_URL", DEFAULT_URL),
+                        help=f"API base URL (default {DEFAULT_URL})")
     parser.add_argument("--api-key", help="ingestion API key (default: $API_KEY or the .env file)")
     parser.add_argument("--scenario", choices=(*SCENARIOS, "all"), default="all")
     parser.add_argument("--rate", type=float, default=5, help="normal traffic, events per second (default 5)")
-    parser.add_argument("--duration", type=float, default=10, help="seconds of normal traffic for --scenario normal (default 10)")
-    parser.add_argument("--pause", type=float, default=3, help="seconds between attacks in the full demo (default 3)")
+    parser.add_argument("--duration", type=float, default=10,
+                        help="seconds of normal traffic for --scenario normal (default 10)")
+    parser.add_argument("--pause", type=float, default=3,
+                        help="seconds between attacks in the full demo (default 3)")
     parser.add_argument("--batch", type=int, default=50, help=f"events per request, max {MAX_BATCH} (default 50)")
     parser.add_argument("--seed", type=int, help="make the generated data repeatable")
     parser.add_argument("--dry-run", action="store_true", help="print the events as JSON instead of sending them")

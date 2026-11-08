@@ -13,7 +13,7 @@ it when it is fixed.
 | **Web-app event helper and test web app** (`examples/`) | Described in `docs/BACKEND_SPEC.md`; the only source of real `auth_failure` and `http_request` events. |
 | **CI** (GitHub Actions: ruff + pytest + `svelte-check`) | None exists. The suite runs in about 30 seconds. |
 | **Browser check of the dashboard against the live API** | The frontend type-checks and builds, but nobody has driven it in a browser against the real backend yet. |
-| **Linting** | `ruff` is not configured. A default run reports about 67 style findings (import order, unused imports) in older files; they were left alone to keep other people's diffs small. |
+| **Linting** | `ruff.toml` exists (`ruff check .`, rules E, W, F, B). New code is clean. 21 findings remain in older files (whitespace, unused imports, a few long lines, one `zip()` without `strict=`; 17 are auto-fixable with `ruff --fix`) and were left alone to keep other people's diffs small. Fix them, then add `ruff check .` to CI. |
 
 ## Decided to defer
 

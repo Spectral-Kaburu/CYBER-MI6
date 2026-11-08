@@ -35,7 +35,7 @@ def create_user(body: UserCreate, db: Database = Depends(get_db)):
             status=body.status,
         )
     except storage.UsernameTakenError:
-        raise _taken()
+        raise _taken() from None
     return auth.to_profile(user)
 
 
@@ -51,9 +51,9 @@ def update_user(user_id: str, body: UserUpdate, db: Database = Depends(get_db)):
             status=body.status,
         )
     except storage.UsernameTakenError:
-        raise _taken()
+        raise _taken() from None
     except storage.LastAdminError:
-        raise _last_admin()
+        raise _last_admin() from None
     if user is None:
         raise HTTPException(404, "User not found")
     return auth.to_profile(user)
@@ -64,7 +64,7 @@ def set_status(user_id: str, body: UserStatusUpdate, db: Database = Depends(get_
     try:
         user = storage.update_user(db, user_id, status=body.status)
     except storage.LastAdminError:
-        raise _last_admin()
+        raise _last_admin() from None
     if user is None:
         raise HTTPException(404, "User not found")
     return auth.to_profile(user)
